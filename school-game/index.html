@@ -620,7 +620,7 @@ function makeDressTeacher() {
   part(new THREE.BoxGeometry(0.9, 0.25, 0.2), mat(0xb4485a), 0, b.hy - 1.2, b.hr - 0.1, b.inner);
   return b;
 }
-// 키다리 쌤: 큰 키, 긴 머리
+// 기술 쌤: 긴 머리, 머스터드색 니트
 function makeTallTeacher() {
   const b = body({ skin: 0x6f4630, pants: 0x22252b, top: 0xd4a63a, torsoW: 3.7, torsoD: 2.3, torsoH: 6, leg: 6.4, shoes: 0x1a1a1a });
   const hc = hairCap(b, 0x1d1a18, 0.42, [1.06, 1.06, 1.08], 0.35); hc.position.z = -0.35;
@@ -632,18 +632,36 @@ function makeTallTeacher() {
   return b;
 }
 
-const CH = 0.72;   // 실제 키: 학생 약 1.7m, 키다리 쌤 약 2.2m
+const PX_PER_M = 1 / 0.17;   // 도면 1픽셀 ≈ 0.17m
 
 const TEACHERS = [
-  { name: "지팡이 쌤", line: "복도에서 뛰지 말거라!", make: makeCaneTeacher, color: "#f1eee4" },
-  { name: "원피스 쌤", line: "어디 가니? 천천히 걸어야지!", make: makeDressTeacher, color: "#f6b7c2" },
-  { name: "키다리 쌤", line: "거기 학생, 잠깐 이리 와 볼래?", make: makeTallTeacher, color: "#f3d27a" },
+  { name: "지팡이 쌤", line: "복도에서 뛰지 말거라!", make: makeCaneTeacher, color: "#f1eee4", cm: 175 },
+  { name: "원피스 쌤", line: "어디 가니? 천천히 걸어야지!", make: makeDressTeacher, color: "#f6b7c2", cm: 167 },
+  { name: "기술 쌤", line: "거기 학생, 잠깐 이리 와 볼래?", make: makeTallTeacher, color: "#f3d27a", cm: 170 },
+  { name: "영어 쌤", line: "Hey! No running in the hallway!", make: makeEnglishTeacher, color: "#a9cdf0", cm: 190 },
 ].map(t => {
-  const b = t.make(); b.g.scale.setScalar(CH); const tag = nameTag(t.name, t.color); tag.scale.set(9, 2.25, 1); tag.position.y = b.hy + b.hr + 3.5; b.g.add(tag);
-  const alert = nameTag("!", "#e65a4b"); alert.scale.set(3.4, 2.2, 1); alert.position.y = b.hy + b.hr + 8; alert.visible = false; b.g.add(alert);
+  const b = t.make(), h = (t.cm / 100) * PX_PER_M, k = h / (b.hy + b.hr + 0.3);   // 정수리까지 높이를 실제 키로 맞춤
+  b.inner.scale.setScalar(k); b.heightPx = h;
+  const tag = nameTag(t.name, t.color); tag.scale.set(6.5, 1.6, 1); tag.position.y = h + 2.2; b.g.add(tag);
+  const alert = nameTag("!", "#e65a4b"); alert.scale.set(2.6, 1.7, 1); alert.position.y = h + 4.4; alert.visible = false; b.g.add(alert);
   scene.add(b.g);
   return { ...t, b, alert, floor: 0, x: 0, y: 0, path: null, pi: 0, mode: "patrol", until: 0, repath: 0, face: 0 };
 });
+
+// 영어 쌤: 190cm, 안경, 하늘색 셔츠에 남색 조끼, 영어 교과서
+function makeEnglishTeacher() {
+  const b = body({ skin: 0xf0c8a6, pants: 0x2f3a4d, top: 0x9cc3e6, torsoW: 4.4, torsoD: 2.6, torsoH: 5.8, leg: 5.6, shoes: 0x4a3426 });
+  part(new THREE.BoxGeometry(4.6, 4.6, 2.8), mat(0x2c3e66), 0, b.top - 2.6, 0, b.inner);
+  part(new THREE.BoxGeometry(1.2, 2, 0.2), mat(0x9cc3e6), 0, b.top - 1, 1.42, b.inner);
+  hairCap(b, 0x4a3221, 0.5, [1.06, 1.04, 1.08], 0.2);
+  eyes(b, { r: 0.26, white: 0.4, spread: 0.9, y: 0.2 });
+  for (const sx of [-1, 1]) { const g = part(new THREE.TorusGeometry(0.75, 0.12, 6, 16), mat(0x1c1c1c), sx * 0.9, b.hy + 0.2, b.hr - 0.05, b.inner); }
+  part(new THREE.BoxGeometry(0.6, 0.12, 0.12), mat(0x1c1c1c), 0, b.hy + 0.25, b.hr + 0.05, b.inner);
+  const smile = part(new THREE.TorusGeometry(0.55, 0.13, 6, 12, Math.PI), mat(0x8a4a3a), 0, b.hy - 1.0, b.hr - 0.15, b.inner); smile.rotation.z = Math.PI;
+  const book = part(new THREE.BoxGeometry(0.7, 3.2, 2.4), mat(0xc0392b), 0.2, -3.6, 0.9, b.limbs.arms[0]);
+  part(new THREE.BoxGeometry(0.72, 0.6, 1.6), mat(0xf6f3e8), 0.2, -3.0, 0.9, b.limbs.arms[0]);
+  return b;
+}
 
 function animateWalk(b, t, moving, speed = 1) {
   const a = moving ? Math.sin(t * 11 * speed) * 0.65 : 0;
@@ -666,7 +684,7 @@ function placeTeacher(t, f) {
 }
 function assignTeachers() {
   const cur = floorOf(S.y), tf = S.target.floor;
-  const want = [tf, cur !== tf ? cur : 1 + Math.floor(Math.random() * 4), 1 + Math.floor(Math.random() * 4)];
+  const rnd = () => 1 + Math.floor(Math.random() * 4), want = [tf, cur !== tf ? cur : rnd(), rnd(), rnd()];
   const order = [...TEACHERS].sort(() => Math.random() - 0.5);
   order.forEach((t, k) => { if (t.floor !== want[k]) placeTeacher(t, want[k]); });
 }
